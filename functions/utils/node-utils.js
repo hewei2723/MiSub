@@ -364,6 +364,12 @@ export function fixNodeUrlEncoding(nodeUrl, options = {}) {
         return normalizeFragment(nodeUrl);
     }
 
+    // Trojan userinfo is a password, not Base64. Keep reserved characters encoded
+    // until parseTrojanUrl decodes the password after separating it from the host.
+    if (nodeUrl.startsWith('trojan://')) {
+        return normalizeFragment(nodeUrl);
+    }
+
     // 1.1 Snell 参数兼容处理（移除 SubConverter 不识别的字段）
     if (nodeUrl.startsWith('snell://')) {
         try {

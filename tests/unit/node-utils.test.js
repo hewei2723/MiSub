@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { addFlagEmoji, prependNodeName } from '../../functions/utils/node-utils.js';
+import {
+    addFlagEmoji,
+    prependNodeName,
+    fixNodeUrlEncoding,
+} from '../../functions/utils/node-utils.js';
 import { convertClashProxyToUrl } from '../../functions/utils/clash-to-url.js';
 import { urlsToClashProxies } from '../../functions/utils/url-to-clash.js';
 
@@ -20,6 +24,32 @@ function buildSsrUrl(name = '台湾 1') {
 }
 
 describe('node-utils', () => {
+    it.each(['demo@secret', 'demo/?#secret', 'demo%40secret', 'demo:secret'])(
+        'preserves Trojan password %s through normalization, prefixing and Clash rendering',
+        (password) => {
+            const source = {
+                name: 'Singapore',
+                type: 'trojan',
+                server: 'node.example.com',
+                port: 443,
+                password,
+                sni: 'tls.example.com',
+                'dialer-proxy': 'entry',
+            };
+            const uri = convertClashProxyToUrl(source);
+            const normalized = fixNodeUrlEncoding(uri);
+            const [rendered] = urlsToClashProxies([prependNodeName(normalized, 'Airport')]);
+            expect(rendered).toMatchObject({
+                server: source.server,
+                port: source.port,
+                password,
+                sni: source.sni,
+                'dialer-proxy': source['dialer-proxy'],
+            });
+            expect(rendered.server).not.toContain('@');
+        }
+    );
+
     it('prependNodeName 应在 hash 非法编码时安全回退而不是抛错', () => {
         const malformed = 'vless://uuid@example.com:443?security=tls#%E0%A4%A';
 
